@@ -63,11 +63,11 @@ pipeline {
         stage('Build-Tag & Push Backend Docker Image') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'docker-cred') {
+                    withDockerRegistry(credentialsId: 'dockerhub-cred') {
                         dir('api') {
-                            sh 'docker build -t adijaiswal/backend:latest .'
-                            sh 'trivy image --format table -o backend-image-report.html adijaiswal/backend:latest '
-                            sh 'docker push adijaiswal/backend:latest'
+                            sh 'docker build -t khalidale/backend:latest .'
+                            sh 'trivy image --format table -o backend-image-report.html khalidale/backend:latest '
+                            sh 'docker push khalidale/backend:latest'
                            
                         }
                     }
@@ -78,18 +78,17 @@ pipeline {
         stage('Build-Tag & Push Frontend Docker Image') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'docker-cred') {
+                    withDockerRegistry(credentialsId: 'dockerhub-cred') {
                         dir('client') {
-                            sh 'docker build -t adijaiswal/frontend:latest .'
-                            sh 'trivy image --format table -o frontend-image-report.html adijaiswal/frontend:latest '
-                            sh 'docker push adijaiswal/frontend:latest'
+                            sh 'docker build -t khalidale/frontend:latest .'
+                            sh 'trivy image --format table -o frontend-image-report.html khalidale/frontend:latest '
+                            sh 'docker push khalidale/frontend:latest'
                         }
                     }
                 }
             }
              
         }  
-        
         stage('Manual Approval for Production') {
             steps {
                 timeout(time: 1, unit: 'HOURS') {
