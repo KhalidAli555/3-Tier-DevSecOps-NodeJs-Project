@@ -8,7 +8,7 @@ metadata:
     app: mysql
 type: Opaque
 stringData:
-  MYSQL_ROOT_PASSWORD: Aditya
+  MYSQL_ROOT_PASSWORD: admin123
 
 ---
 apiVersion: v1
@@ -19,7 +19,7 @@ metadata:
   labels:
     app: mysql
 data:
-  MYSQL_DATABASE: crud_app
+  MYSQL_DATABASE: mydb
 
 ---
 apiVersion: v1
@@ -31,7 +31,7 @@ metadata:
     app: mysql
 data:
   init.sql: |
-    CREATE DATABASE IF NOT EXISTS crud_app;
+    CREATE DATABASE IF NOT EXISTS mydb;
 
     USE crud_app;
 
