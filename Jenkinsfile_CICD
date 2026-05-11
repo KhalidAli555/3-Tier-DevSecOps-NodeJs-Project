@@ -1,29 +1,26 @@
-
 pipeline {
     agent any
-    
     tools {
-        nodejs 'nodejs23'
+      nodejs 'nodejs23' 
     }
-
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
     }
+
     stages {
-        stage('Git Checkout') {
+        stage('GitCheckout') {
             steps {
-                git branch: 'main', url: 'https://github.com/jaiswaladi246/3-Tier-DevSecOps-Mega-Project.git'
+                git branch: 'main', url: 'https://github.com/KhalidAli555/3-Tier-DevSecOps-NodeJs-Project.git'
             }
         }
         
         stage('Frontend Compilation') {
             steps {
-                dir('client') {
+               dir('client') {
                     sh 'find . -name "*.js" -exec node --check {} +'
                 }
             }
         }
-        
         stage('Backend Compilation') {
             steps {
                 dir('api') {
@@ -31,7 +28,6 @@ pipeline {
                 }
             }
         }
-        
         stage('GitLeaks Scan') {
             steps {
                 sh 'gitleaks detect --source ./client --exit-code 1'
@@ -47,27 +43,27 @@ pipeline {
                 }
             }
         }
-        stage('Quality Gate Check') {
+        stage('Quality gate check') {
             steps {
                 timeout(time: 1, unit: 'HOURS') {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
-                }
+                waitForQualityGate abortPipeline: false, credentialsId: 'sonarqube-token'
+        }
             }
         }
-        stage('Trivy FS Scan') {
+        
+         stage('Trivy FS Scan') {
             steps {
                 sh 'trivy fs --format table -o fs-report.html .'
             }
         }
-        
         stage('Build-Tag & Push Backend Docker Image') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'docker-cred') {
+                    withDockerRegistry(credentialsId: 'dockerhub-cred') {
                         dir('api') {
-                            sh 'docker build -t adijaiswal/backend:latest .'
-                            sh 'trivy image --format table -o backend-image-report.html adijaiswal/backend:latest '
-                            sh 'docker push adijaiswal/backend:latest'
+                            sh 'docker build -t khalidale/backend:latest .'
+                            sh 'trivy image --format table -o backend-image-report.html khalidale/backend:latest '
+                            sh 'docker push khalidale/backend:latest'
                            
                         }
                     }
@@ -78,55 +74,37 @@ pipeline {
         stage('Build-Tag & Push Frontend Docker Image') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'docker-cred') {
+                    withDockerRegistry(credentialsId: 'dockerhub-cred') {
                         dir('client') {
-                            sh 'docker build -t adijaiswal/frontend:latest .'
-                            sh 'trivy image --format table -o frontend-image-report.html adijaiswal/frontend:latest '
-                            sh 'docker push adijaiswal/frontend:latest'
+                            sh 'docker build -t khalidale/frontend:latest .'
+                            sh 'trivy image --format table -o frontend-image-report.html khalidale/frontend:latest '
+                            sh 'docker push khalidale/frontend:latest'
                         }
                     }
                 }
             }
              
         }  
-        
-        stage('Manual Approval for Production') {
-            steps {
-                timeout(time: 1, unit: 'HOURS') {
-                    input message: 'Approve deployment to PRODUCTION?', ok: 'Deploy'
-                }
-            }
-        }
-        
-       stage('Deployment To Prod') {
+       
+       stage('Deployment To k8s') {
             steps {
                 script {
-                    withKubeConfig(caCertificate: '', clusterName: 'devopsshack-cluster', contextName: '', credentialsId: 'k8-prod-token', namespace: 'prod', restrictKubeConfigAccess: false, serverUrl: 'https://AFC6FCFF5360B30D5E8950396E38A8C4.gr7.ap-south-1.eks.amazonaws.com') {
-                        sh 'kubectl apply -f k8s-prod/sc.yaml'
-                        sleep 20
-                        sh 'kubectl apply -f k8s-prod/mysql.yaml -n prod'
-                        sh 'kubectl apply -f k8s-prod/backend.yaml -n prod'
-                        sh 'kubectl apply -f k8s-prod/frontend.yaml -n prod'
-                        sh 'kubectl apply -f k8s-prod/ci.yaml'
-                        sh 'kubectl apply -f k8s-prod/ingress.yaml -n prod'
-                        sleep 30
-                    }
-                }
-            }
-        }
-        
-        stage('Verify Deployment To Prod') {
-            steps {
-                script {
-                    withKubeConfig(caCertificate: '', clusterName: 'devopsshack-cluster', contextName: '', credentialsId: 'k8-prod-token', namespace: 'prod', restrictKubeConfigAccess: false, serverUrl: 'https://AFC6FCFF5360B30D5E8950396E38A8C4.gr7.ap-south-1.eks.amazonaws.com') {
-                        sh 'kubectl get pods -n prod'
-                        sleep 20
-                         sh 'kubectl get ingress -n prod'
+                    withKubeConfig(caCertificate: '', clusterName: '', contextName: '', credentialsId: 'k8s-token', namespace: '', restrictKubeConfigAccess: false, serverUrl: 'https://172.31.16.248:6443'){
                         
+                        sh 'kubectl apply -f k8s/mysql/pv.yml'
+                        sh 'kubectl apply -f k8s/mysql/pvc.yml'
+                        sh 'kubectl apply -f k8s/mysql/config.yml'
+                        sh 'kubectl apply -f k8s/mysql/config1.yml'
+                        sh 'kubectl apply -f k8s/mysql/secret.yml'
+                        sh 'kubectl apply -f k8s/mysql/deployment.yml'
+                        sh 'kubectl apply -f k8s/mysql/service.yml'
+                        sh 'kubectl apply -f k8s/backend/deployment.yml'
+                        sh 'kubectl apply -f k8s/backend/service.yml'
+                        sh 'kubectl apply -f k8s/frontend/deployment.yml'
+                        sh 'kubectl apply -f k8s/frontend/service.yml'
                     }
                 }
             }
-        }
-            
+        } 
     }
 }
